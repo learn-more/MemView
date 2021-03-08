@@ -15,51 +15,51 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="WinMain.cpp">
+    <ClCompile Include="src/MainWnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MemInfo.cpp">
+    <ClCompile Include="src/MemInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MainWnd.cpp">
+    <ClCompile Include="src/MemView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Process.cpp">
+    <ClCompile Include="src/Process.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MemView.cpp">
+    <ClCompile Include="src/WinMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MemInfo.h">
+    <ClInclude Include="src/MemInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MemView.h">
+    <ClInclude Include="src/MemView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
+    <ClInclude Include="res/resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="MemView.rc">
+    <ResourceCompile Include="res/MemView.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="collapse.ico">
+    <Image Include="res/collapse.ico">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="expand.ico">
+    <Image Include="res/expand.ico">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="MemView.ico">
+    <Image Include="res/MemView.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <Font Include="Hack-Regular.ttf">
+    <Font Include="res/Hack-Regular.ttf">
       <Filter>Resource Files</Filter>
     </Font>
   </ItemGroup>

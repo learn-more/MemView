@@ -1,7 +1,6 @@
 #include "MemView.h"
 #include <Commctrl.h>
-#include <mfl/win32/msg2text/wm.hpp>
-#include "resource.h"
+#include "../res/resource.h"
 
 #pragma comment (lib, "Comctl32.lib")
 #pragma comment(lib, "Psapi.lib")

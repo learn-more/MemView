@@ -152,27 +152,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="MainWnd.cpp" />
-    <ClCompile Include="MemInfo.cpp" />
-    <ClCompile Include="MemView.cpp" />
-    <ClCompile Include="Process.cpp" />
-    <ClCompile Include="WinMain.cpp" />
+    <ClCompile Include="src/MainWnd.cpp" />
+    <ClCompile Include="src/MemInfo.cpp" />
+    <ClCompile Include="src/MemView.cpp" />
+    <ClCompile Include="src/Process.cpp" />
+    <ClCompile Include="src/WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MemInfo.h" />
-    <ClInclude Include="MemView.h" />
-    <ClInclude Include="resource.h" />
+    <ClInclude Include="src/MemInfo.h" />
+    <ClInclude Include="src/MemView.h" />
+    <ClInclude Include="res/resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="MemView.rc" />
+    <ResourceCompile Include="res/MemView.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="collapse.ico" />
-    <Image Include="expand.ico" />
-    <Image Include="MemView.ico" />
+    <Image Include="res/collapse.ico" />
+    <Image Include="res/expand.ico" />
+    <Image Include="res/MemView.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Font Include="Hack-Regular.ttf" />
+    <Font Include="res/Hack-Regular.ttf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
