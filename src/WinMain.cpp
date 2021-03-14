@@ -1,3 +1,10 @@
+/*
+ * PROJECT:     MemView
+ * LICENSE:     MIT (https://spdx.org/licenses/MIT)
+ * PURPOSE:     Entry point / common resources
+ * COPYRIGHT:   Copyright 2021 Mark Jansen <mark.jansen@reactos.org>
+ */
+
 #include "MemView.h"
 #include <Commctrl.h>
 #include "../res/resource.h"
@@ -6,9 +13,6 @@
 #pragma comment(lib, "Psapi.lib")
 
 HINSTANCE g_hInst;
-
-LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-bool OpenProcess(DWORD);
 
 
 static HFONT g_Font = NULL;

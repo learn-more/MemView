@@ -1,3 +1,10 @@
+/*
+ * PROJECT:     MemView
+ * LICENSE:     MIT (https://spdx.org/licenses/MIT)
+ * PURPOSE:     The hex-dump window
+ * COPYRIGHT:   Copyright 2021 Mark Jansen <mark.jansen@reactos.org>
+ */
+
 #include "MemView.h"
 #include "MemInfo.h"
 #include <algorithm>
@@ -50,12 +57,12 @@ struct MemView
     int FontNL;
 };
 
-static TCHAR Hex2Str[] = TEXT("0123456789abcdef");
+static WCHAR Hex2Str[] = L"0123456789abcdef";
 
-void ToBuffer(TCHAR* Buffer, size_t Cch, unsigned char* Data, SIZE_T DataLen, SIZE_T PerLine, PBYTE Address)
+void ToBuffer(WCHAR* Buffer, size_t Cch, unsigned char* Data, SIZE_T DataLen, SIZE_T PerLine, PBYTE Address)
 {
-    StringCchPrintf(Buffer, Cch, TEXT("%p:  "), Address);
-    TCHAR* p = Buffer + _tcslen(Buffer);
+    StringCchPrintfW(Buffer, Cch, L"%p:  ", Address);
+    WCHAR* p = Buffer + wcslen(Buffer);
     for(size_t n = 0; n < PerLine; ++n)
     {
         if (n < DataLen)
@@ -121,7 +128,7 @@ LRESULT HandleWM_PAINT(HWND hwnd, MemView* mv)
     if (mv->Dirty)
         ReadMemory(hwnd, mv);
 
-    TCHAR Buffer[512];
+    WCHAR Buffer[512];
     SelectObject(hdc, getFont());
     size_t PerLine = mv->PerLine;
     for(size_t n = 0; n < mv->DisplayLines; ++n)
@@ -129,7 +136,7 @@ LRESULT HandleWM_PAINT(HWND hwnd, MemView* mv)
         size_t offset = (mv->vPos*PerLine) + (n*PerLine);
         size_t Left = std::min<size_t>(PerLine, mv->Info.size() - offset);
         ToBuffer(Buffer, _countof(Buffer), mv->Buffer.data() + (n*PerLine), Left, PerLine, mv->Info.start() + offset);
-        TextOut(hdc, 2, mv->FontY * n, Buffer, _tcslen(Buffer));
+        TextOutW(hdc, 2, mv->FontY * n, Buffer, wcslen(Buffer));
     }
 
     EndPaint(hwnd, &ps);
@@ -251,12 +258,12 @@ LRESULT CALLBACK MemWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
     {
-        TCHAR Buffer[512];
+        WCHAR Buffer[512];
         MemView* mv = static_cast<MemView*>(((LPCREATESTRUCT)lParam)->lpCreateParams);
         SetPtr(hwnd, mv);
-        StringCchPrintf(Buffer, _countof(Buffer), TEXT("%s (%u), %p - %p"),
+        StringCchPrintfW(Buffer, _countof(Buffer), L"%s (%u), %p - %p",
             mv->ProcessName.c_str(), mv->ProcessPid, mv->Info.start(), mv->Info.start() + mv->Info.size());
-        SetWindowText(hwnd, Buffer);
+        SetWindowTextW(hwnd, Buffer);
         CreateFont(hwnd, mv);
         setWindowIcons(hwnd);
         //ReadMemory(hwnd, mv);

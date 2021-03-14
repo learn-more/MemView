@@ -1,0 +1,36 @@
+version: '#{build}-{branch}'
+image: Visual Studio 2015
+
+configuration: Release
+
+platform:
+- x86
+- x64
+
+build:
+  project: MemView.sln
+  parallel: true
+  verbosity: minimal
+
+after_build:
+  cmd:
+    7z a MemView-%PLATFORM%.zip %APPVEYOR_BUILD_FOLDER%\bin\MemView-%PLATFORM%.exe %APPVEYOR_BUILD_FOLDER%\bin\MemView-%PLATFORM%.pdb
+
+test: off
+
+artifacts:
+- path: MemView-$(platform).zip
+  name: MemView-$(platform)
+
+skip_commits:
+  files:
+    - docs/*
+    - '**/*.html'
+
+deploy:
+- provider: GitHub
+  auth_token:
+    secure: Oi0dY+G9aVWKKDX1Zfvnyl6l9RiEuomDiBvkiZMAudT9T42pVw7axiCeuu+tOtK0
+  draft: true
+  on:
+    APPVEYOR_REPO_TAG: true

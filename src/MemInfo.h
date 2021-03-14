@@ -1,3 +1,10 @@
+/*
+ * PROJECT:     MemView
+ * LICENSE:     MIT (https://spdx.org/licenses/MIT)
+ * PURPOSE:     Memory information container
+ * COPYRIGHT:   Copyright 2021 Mark Jansen <mark.jansen@reactos.org>
+ */
+
 #pragma once
 
 #include <vector>

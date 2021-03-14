@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="mfl">
+      <UniqueIdentifier>{29ac992e-2237-4eea-857f-8c651536dd61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mfl\win32">
+      <UniqueIdentifier>{73730af7-5ef0-4a66-9f31-f442e0e08cf5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src/MainWnd.cpp">
@@ -40,6 +46,9 @@
     </ClInclude>
     <ClInclude Include="res/resource.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mfl\win32\tlhelp32.h">
+      <Filter>mfl\win32</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

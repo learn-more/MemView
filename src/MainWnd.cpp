@@ -1,17 +1,24 @@
+/*
+ * PROJECT:     MemView
+ * LICENSE:     MIT (https://spdx.org/licenses/MIT)
+ * PURPOSE:     The main application window
+ * COPYRIGHT:   Copyright 2021 Mark Jansen <mark.jansen@reactos.org>
+ */
+
 #include "MemView.h"
 #include <Commctrl.h>
 #include <algorithm>
 #include "MemInfo.h"
 
-extern HINSTANCE g_hInst;
-extern HANDLE g_ProcessHandle;
-extern std::wstring g_ProcessName;
-
 static HWND g_Static;
 static HWND g_Listview;
 static std::vector<MemInfo> g_Info;
 
-wchar_t* Columns[] =
+#ifndef GWL_WNDPROC
+#define GWL_WNDPROC         (-4)
+#endif
+
+static wchar_t* Columns[] =
 {
     L"",
     L"Address",
@@ -22,7 +29,7 @@ wchar_t* Columns[] =
     L"Mapped"
 };
 
-int Sizes[] = {
+static int Sizes[] = {
     16,
     76,
     70,
@@ -31,10 +38,6 @@ int Sizes[] = {
     110,
     600
 };
-
-void UpdateStatic(HWND Static);
-bool UpdateProcessList(HWND Parent, UINT Height, int x, int y);
-void ShowMemory(HWND Parent, const MemInfo& info, HANDLE Handle, const std::wstring& Title);
 
 
 static void UpdateListView()
@@ -156,7 +159,7 @@ static void HandleSize(HWND hwnd)
 
 
 static WNDPROC g_OriginalProc;
-LRESULT APIENTRY ListViewSubclassProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+static LRESULT APIENTRY ListViewSubclassProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     if(uMsg == WM_ERASEBKGND)
     {
@@ -279,10 +282,6 @@ static LRESULT ListviewWM_NOTIFY(HWND hWnd, WPARAM wParam, LPNMHDR lParam)
     return DefWindowProc(hWnd, WM_NOTIFY, wParam, (LPARAM)lParam);
 }
 
-#ifndef GWL_WNDPROC
-#define GWL_WNDPROC         (-4)
-#endif
-
 LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
@@ -362,6 +361,14 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
             if (UpdateProcessList(hwnd, rc.bottom - rc.top, rc.left, rc.top))
                 UpdateStatic(g_Static);
+        }
+        break;
+
+    case WM_SETCURSOR:
+        if ((HWND)wParam == g_Static)
+        {
+            ::SetCursor(LoadCursorW(NULL, IDC_HAND));
+            return TRUE;
         }
         break;
 

@@ -1,5 +1,12 @@
+/*
+ * PROJECT:     MemView
+ * LICENSE:     GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
+ * PURPOSE:     The process-selection menu
+ * COPYRIGHT:   Copyright 2021 Mark Jansen (mark.jansen@reactos.org)
+ */
+
 #include "MemView.h"
-#include <mfl/win32/tlhelp32.h>
+#include "mfl/win32/tlhelp32.h"
 #include <Psapi.h>
 #include <map>
 
@@ -13,8 +20,8 @@ void UpdateStatic(HWND Static)
 {
     if (Static)
     {
-        TCHAR buf[MAX_PATH + 20];
-        StringCchPrintf(buf, _countof(buf), TEXT("%s (%u)"), g_ProcessName.c_str(), g_ProcessId);
+        WCHAR buf[MAX_PATH + 20];
+        StringCchPrintfW(buf, _countof(buf), L"%s (%u)", g_ProcessName.c_str(), g_ProcessId);
         Static_SetText(Static, buf);
     }
 }
@@ -32,14 +39,14 @@ bool OpenProcess(DWORD pid)
     g_ProcessHandle = InternalOpen(pid);
     if (g_ProcessHandle)
     {
-        TCHAR buf[512];
-        GetProcessImageFileName(g_ProcessHandle, buf, _countof(buf));
+        WCHAR buf[512];
+        GetProcessImageFileNameW(g_ProcessHandle, buf, _countof(buf));
         g_ProcessName = buf;
     }
     return g_ProcessHandle != NULL;
 }
 
-bool CanOpen(DWORD pid)
+static bool CanOpen(DWORD pid)
 {
     HANDLE proc = InternalOpen(pid);
     if (proc)
@@ -50,7 +57,7 @@ bool CanOpen(DWORD pid)
     return false;
 }
 
-BOOL __stdcall enumProc2(HWND hwnd, LPARAM lParam)
+static BOOL __stdcall enumProc2(HWND hwnd, LPARAM lParam)
 {
     if (IsWindowVisible(hwnd) && GetWindow(hwnd, GW_OWNER) == NULL)
     {
@@ -62,26 +69,26 @@ BOOL __stdcall enumProc2(HWND hwnd, LPARAM lParam)
     return TRUE;
 }
 
-void AddMenu(HMENU Menu, int Index, UINT AddType, DWORD pid, TCHAR* buffer)
+static void AddMenu(HMENU Menu, int Index, UINT AddType, DWORD pid, WCHAR* buffer)
 {
-    MENUITEMINFO mii = { sizeof(mii) };
+    MENUITEMINFOW mii = { sizeof(mii) };
     mii.fMask = MIIM_ID | MIIM_STRING | MIIM_DATA | MIIM_BITMAP | MIIM_FTYPE;
     mii.fType = MF_STRING | AddType;
     mii.wID = pid;
     mii.dwTypeData = buffer;
-    mii.hbmpItem = HBMMENU_SYSTEM;
+    mii.hbmpItem = HBMMENU_SYSTEM;  /* Use the icon from the window specified in dwItemData */
     mii.dwItemData = (ULONG_PTR)g_Windows[pid];
-    InsertMenuItem(Menu, Index, TRUE, &mii);
+    InsertMenuItemW(Menu, Index, TRUE, &mii);
 }
 
-HMENU CreateProcessMenu(UINT Height)
+static HMENU CreateProcessMenu(UINT Height)
 {
     HMENU Menu = NULL;
     g_Windows.clear();
     EnumWindows(enumProc2, NULL);
 
     Menu = CreatePopupMenu();
-    TCHAR buffer[MAX_PATH + 20];
+    WCHAR buffer[MAX_PATH + 20];
     UINT ItemHeight, Current = 0;
     ItemHeight = GetSystemMetrics(SM_CYMENUSIZE);
     int Num = 0;
@@ -91,7 +98,7 @@ HMENU CreateProcessMenu(UINT Height)
         if (CanOpen(pi->th32ProcessID))
         {
             UINT flags = MF_STRING | MF_ENABLED;
-            StringCchPrintf(buffer, _countof(buffer), TEXT("%s (%u)"), pi->szExeFile, pi->th32ProcessID);
+            StringCchPrintfW(buffer, _countof(buffer), L"%s (%u)", pi->szExeFile, pi->th32ProcessID);
             Current += ItemHeight;
             AddMenu(Menu, Num++, (Current > Height) ? MF_MENUBARBREAK : 0, pi->th32ProcessID, buffer);
             if (Current > Height)
@@ -107,10 +114,12 @@ bool UpdateProcessList(HWND Parent, UINT Height, int x, int y)
     if (menu)
     {
         INT n = TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_RETURNCMD | TPM_NONOTIFY, x, y, Parent, NULL);
-        PostMessage(Parent, WM_NULL, 0, 0);
+        PostMessageW(Parent, WM_NULL, 0, 0);
         DestroyMenu(menu);
         if (n)
+        {
             return OpenProcess(n);
+        }
     }
     return false;
 }

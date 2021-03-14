@@ -1,10 +1,16 @@
+/*
+ * PROJECT:     MemView
+ * LICENSE:     MIT (https://spdx.org/licenses/MIT)
+ * PURPOSE:     Memory information helper function
+ * COPYRIGHT:   Copyright 2021 Mark Jansen <mark.jansen@reactos.org>
+ */
+
 #include "MemView.h"
 #include <Psapi.h>
 #include "MemInfo.h"
 
 
 static LPSYSTEM_INFO g_Info = nullptr;
-
 
 
 const wchar_t* Prot2Str(DWORD prot)
