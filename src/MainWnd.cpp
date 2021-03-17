@@ -31,7 +31,11 @@ static wchar_t* Columns[] =
 
 static int Sizes[] = {
     16,
+#ifdef _WIN64
+    136,
+#else
     76,
+#endif
     70,
     40,
     110,
@@ -289,7 +293,6 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
     {
         SetWindowFont(hwnd, getFont(), FALSE);
-        setWindowIcons(hwnd);
 
         RECT client;
         GetClientRect(hwnd, &client);

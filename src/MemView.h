@@ -29,7 +29,7 @@ HICON getExpandIcon();
 HICON getCollapseIcon();
 
 // Set the window icon
-void setWindowIcons(HWND hWnd);
+void setIcons(WNDCLASSEX& wc);
 
 
 void UpdateStatic(HWND Static);

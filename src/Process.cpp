@@ -10,7 +10,7 @@
 #include <Psapi.h>
 #include <map>
 
-
+static BOOL g_IsRunningOnWow = -1;
 static DWORD g_ProcessId;
 HANDLE g_ProcessHandle;
 std::wstring g_ProcessName;
@@ -46,13 +46,28 @@ bool OpenProcess(DWORD pid)
     return g_ProcessHandle != NULL;
 }
 
-static bool CanOpen(DWORD pid)
+static bool CanOpen(DWORD pid, bool& x86)
 {
     HANDLE proc = InternalOpen(pid);
     if (proc)
     {
+        bool canOpen = true;
+        if (g_IsRunningOnWow == -1)
+        {
+            IsWow64Process(GetCurrentProcess(), &g_IsRunningOnWow);
+        }
+        BOOL fIsWowProcess;
+        if (IsWow64Process(proc, &fIsWowProcess))
+        {
+            x86 = !!fIsWowProcess;
+            if (g_IsRunningOnWow)
+            {
+                canOpen = fIsWowProcess == g_IsRunningOnWow;
+            }
+        }
+
         CloseHandle(proc);
-        return true;
+        return canOpen;
     }
     return false;
 }
@@ -77,7 +92,8 @@ static void AddMenu(HMENU Menu, int Index, UINT AddType, DWORD pid, WCHAR* buffe
     mii.wID = pid;
     mii.dwTypeData = buffer;
     mii.hbmpItem = HBMMENU_SYSTEM;  /* Use the icon from the window specified in dwItemData */
-    mii.dwItemData = (ULONG_PTR)g_Windows[pid];
+    ULONG_PTR wnd = (ULONG_PTR)g_Windows[pid];
+    mii.dwItemData = wnd;
     InsertMenuItemW(Menu, Index, TRUE, &mii);
 }
 
@@ -95,10 +111,11 @@ static HMENU CreateProcessMenu(UINT Height)
     mfl::win32::ProcessIterator pi;
     while(pi.next())
     {
-        if (CanOpen(pi->th32ProcessID))
+        bool x86 = false;
+        if (CanOpen(pi->th32ProcessID, x86))
         {
             UINT flags = MF_STRING | MF_ENABLED;
-            StringCchPrintfW(buffer, _countof(buffer), L"%s (%u)", pi->szExeFile, pi->th32ProcessID);
+            StringCchPrintfW(buffer, _countof(buffer), L"%s (%u%s)", pi->szExeFile, pi->th32ProcessID, x86 ? L", x86" : L"");
             Current += ItemHeight;
             AddMenu(Menu, Num++, (Current > Height) ? MF_MENUBARBREAK : 0, pi->th32ProcessID, buffer);
             if (Current > Height)

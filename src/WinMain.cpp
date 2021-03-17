@@ -74,9 +74,10 @@ HICON getCollapseIcon()
 
 static HICON g_MainIcon = NULL;
 static HICON g_MainIconSm = NULL;
-void setWindowIcons(HWND hWnd)
+
+void setIcons(WNDCLASSEX& wc)
 {
-    if (g_MainIcon == NULL)
+    if (!g_MainIcon)
     {
         g_MainIcon = (HICON)LoadImage(g_hInst, MAKEINTRESOURCE(IDI_MAINICON), IMAGE_ICON,
                                       GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR);
@@ -84,8 +85,8 @@ void setWindowIcons(HWND hWnd)
                                         GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
     }
 
-    SendMessage(hWnd, WM_SETICON, ICON_BIG,   (LPARAM)g_MainIcon);
-    SendMessage(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)g_MainIconSm);
+    wc.hIcon = g_MainIcon;
+    wc.hIconSm = g_MainIconSm;
 }
 
 
@@ -98,12 +99,13 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
     InitCommonControlsEx(&icex);
     g_hInst = hInstance;
 
+
     WNDCLASSEX wc = { sizeof(wc), 0 };
     wc.lpfnWndProc = MainWndProc;
     wc.hInstance = hInstance;
-    wc.hIcon = LoadIcon((HINSTANCE)NULL, IDI_APPLICATION);
     wc.hCursor = LoadCursor((HINSTANCE)NULL, IDC_ARROW);
     wc.lpszClassName = L"MemListClass";
+    setIcons(wc);
 
     if (!RegisterClassEx(&wc))
         return FALSE;

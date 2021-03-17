@@ -265,7 +265,6 @@ LRESULT CALLBACK MemWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             mv->ProcessName.c_str(), mv->ProcessPid, mv->Info.start(), mv->Info.start() + mv->Info.size());
         SetWindowTextW(hwnd, Buffer);
         CreateFont(hwnd, mv);
-        setWindowIcons(hwnd);
         //ReadMemory(hwnd, mv);
         SetTimer(hwnd, 0x1ea4, 1000, NULL);
     }
@@ -326,6 +325,7 @@ void ShowMemory(HWND Parent, const MemInfo& info, HANDLE Handle, const std::wstr
         wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
         wc.lpszClassName = MEMVIEW_CLASS;
         wc.cbWndExtra = sizeof(MemView*);
+        setIcons(wc);
 
         if (!RegisterClassEx(&wc))
             return;

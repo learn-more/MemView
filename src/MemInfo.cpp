@@ -83,7 +83,7 @@ void MemInfo::columnText(__out_ecount(cchDest) STRSAFE_LPWSTR pszDest, __in size
     {
     case Info::Address:
         // Indent sections
-        StringCchPrintf(pszDest, cchDest, TEXT("%s%08x"), start() == allocationStart() ? TEXT("") : TEXT(" "), mInfo.BaseAddress);
+        StringCchPrintf(pszDest, cchDest, TEXT("%s%p"), start() == allocationStart() ? TEXT("") : TEXT(" "), mInfo.BaseAddress);
         break;
     case Info::Size:
         StringCchPrintf(pszDest, cchDest, TEXT("%08x"), mInfo.RegionSize);
@@ -137,8 +137,8 @@ void MemInfo::read(HANDLE hProcess, std::vector<MemInfo>& items)
     if (!g_Info)
     {
         LPSYSTEM_INFO info = new SYSTEM_INFO;
-        // GetNativeSystemInfo
-        GetSystemInfo(info);
+        //SYSTEM_INFO si; GetNativeSystemInfo(&si);
+        GetNativeSystemInfo(info);
         if (InterlockedExchangePointer((void**)&g_Info, info) != nullptr)
             delete info;
     }
