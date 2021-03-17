@@ -3,9 +3,13 @@ image: Visual Studio 2015
 
 configuration: Release
 
+environment:
+  matrix:
+    - PlatformToolset: v140_xp
+
 platform:
-- x86
-- x64
+  - x86
+  - x64
 
 build:
   project: MemView.sln
@@ -13,14 +17,16 @@ build:
   verbosity: minimal
 
 after_build:
-  cmd:
-    7z a MemView-%PLATFORM%.zip %APPVEYOR_BUILD_FOLDER%\bin\MemView-%PLATFORM%.exe %APPVEYOR_BUILD_FOLDER%\bin\MemView-%PLATFORM%.pdb
+  cmd: >-
+    7z a MemView-%PLATFORM%.zip %APPVEYOR_BUILD_FOLDER%\bin\MemView-%PLATFORM%.exe
+
+    7z a MemView-%PLATFORM%.zip %APPVEYOR_BUILD_FOLDER%\bin\MemView-%PLATFORM%.pdb
 
 test: off
 
 artifacts:
-- path: MemView-$(platform).zip
-  name: MemView-$(platform)
+  - path: MemView-$(platform).zip
+    name: MemView-$(platform)
 
 skip_commits:
   files:
@@ -28,9 +34,9 @@ skip_commits:
     - '**/*.html'
 
 deploy:
-- provider: GitHub
-  auth_token:
-    secure: Oi0dY+G9aVWKKDX1Zfvnyl6l9RiEuomDiBvkiZMAudT9T42pVw7axiCeuu+tOtK0
-  draft: true
-  on:
-    APPVEYOR_REPO_TAG: true
+  - provider: GitHub
+    auth_token:
+      secure: Oi0dY+G9aVWKKDX1Zfvnyl6l9RiEuomDiBvkiZMAudT9T42pVw7axiCeuu+tOtK0
+    draft: true
+    on:
+      APPVEYOR_REPO_TAG: true
