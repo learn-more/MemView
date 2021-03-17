@@ -101,6 +101,12 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>$(SolutionDir)GenVersion.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating version header</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -118,6 +124,12 @@
     <ResourceCompile>
       <PreprocessorDefinitions>RC_64;_USING_V110_SDK71_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
+    <PreBuildEvent>
+      <Command>$(SolutionDir)GenVersion.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating version header</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -137,6 +149,12 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>$(SolutionDir)GenVersion.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating version header</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -158,6 +176,12 @@
     <ResourceCompile>
       <PreprocessorDefinitions>RC_64;_USING_V110_SDK71_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
+    <PreBuildEvent>
+      <Command>$(SolutionDir)GenVersion.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Generating version header</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src/MainWnd.cpp" />
@@ -167,10 +191,12 @@
     <ClCompile Include="src/WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="generated_git_version.h" />
     <ClInclude Include="src/MemInfo.h" />
     <ClInclude Include="src/MemView.h" />
     <ClInclude Include="res/resource.h" />
     <ClInclude Include="src\mfl\win32\tlhelp32.h" />
+    <ClInclude Include="src\version.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="res/MemView.rc" />
@@ -182,6 +208,9 @@
   </ItemGroup>
   <ItemGroup>
     <Font Include="res/Hack-Regular.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\MemView.rc2" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -136,7 +136,7 @@ LRESULT HandleWM_PAINT(HWND hwnd, MemView* mv)
         size_t offset = (mv->vPos*PerLine) + (n*PerLine);
         size_t Left = std::min<size_t>(PerLine, mv->Info.size() - offset);
         ToBuffer(Buffer, _countof(Buffer), mv->Buffer.data() + (n*PerLine), Left, PerLine, mv->Info.start() + offset);
-        TextOutW(hdc, 2, mv->FontY * n, Buffer, wcslen(Buffer));
+        TextOutW(hdc, 2, mv->FontY * n, Buffer, (int)wcslen(Buffer));
     }
 
     EndPaint(hwnd, &ps);

@@ -126,5 +126,5 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
             DispatchMessage(&msg);
         }
     }
-    return msg.wParam;
+    return (int)msg.wParam;
 }
