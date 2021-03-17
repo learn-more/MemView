@@ -12,7 +12,7 @@
 
 static HWND g_Static;
 static HWND g_Listview;
-static std::vector<MemInfo> g_Info;
+static std::vector<std::unique_ptr<MemInfo>> g_Info;
 
 #ifndef GWL_WNDPROC
 #define GWL_WNDPROC         (-4)
@@ -49,37 +49,38 @@ static void UpdateListView()
     int Top = ListView_GetTopIndex(g_Listview);
     PBYTE FirstItem = 0;
     if (Top >= 0 && Top < (int)g_Info.size())
-        FirstItem = g_Info[Top].start();
+        FirstItem = g_Info[Top]->start();
     Top = -1;
     int End = -1;
 
     INT Selected = ListView_GetNextItem(g_Listview, -1, LVNI_SELECTED);
     PBYTE SelectedValue = 0;
     if (Selected >= 0 && Selected < (int)g_Info.size())
-        SelectedValue = g_Info[Selected].start();
+        SelectedValue = g_Info[Selected]->start();
     Selected = -1;
 
-    std::vector<MemInfo> Info;
+    std::vector<std::unique_ptr<MemInfo>> Info;
     MemInfo::read(g_ProcessHandle, Info);
 
     for (size_t n = 0; n < Info.size();)
     {
-        if (Top < 0 && Info[n].start() == FirstItem)
+        MemInfo* ptr = Info[n].get();
+        if (Top < 0 && ptr->start() == FirstItem)
         {
             Top = (int)n;
             End = Top + ListView_GetCountPerPage(g_Listview);
         }
 
-        if (SelectedValue && SelectedValue == Info[n].start())
+        if (SelectedValue && SelectedValue == ptr->start())
             Selected = (int)n;
 
         bool checkExpand = false;
         if (n < g_Info.size())
         {
-            int cmp = g_Info[n].cmp(Info[n]);
+            int cmp = g_Info[n]->cmp(*ptr);
             if (!cmp)
             {
-                g_Info[n].update(Info[n]);
+                g_Info[n]->update(*ptr);
                 checkExpand = true;
                 ++n;
             }
@@ -89,31 +90,31 @@ static void UpdateListView()
             }
             else
             {
-                g_Info.insert(g_Info.begin() + n, Info[n]);
+                g_Info.insert(g_Info.begin() + n, std::unique_ptr<MemInfo>(Info[n].release()));
                 checkExpand = true;
                 ++n;
             }
         }
         else
         {
-            g_Info.push_back(Info[n]);
+            g_Info.push_back(std::unique_ptr<MemInfo>(Info[n].release()));
             checkExpand = true;
             ++n;
         }
         if (checkExpand)
         {
-            PBYTE allocationStart = g_Info[n-1].allocationStart();
-            bool isFirstEntryOfMapping = g_Info[n-1].start() == allocationStart;
+            PBYTE allocationStart = g_Info[n-1]->allocationStart();
+            bool isFirstEntryOfMapping = g_Info[n-1]->start() == allocationStart;
             if (isFirstEntryOfMapping && n < Info.size())
             {
-                g_Info[n-1].CanExpand = Info[n].allocationStart() == allocationStart;
+                g_Info[n-1]->CanExpand = Info[n]->allocationStart() == allocationStart;
 
-                if (!g_Info[n-1].CanExpand)
-                    g_Info[n-1].IsExpanded = false;
+                if (!g_Info[n-1]->CanExpand)
+                    g_Info[n-1]->IsExpanded = false;
 
-                if (!g_Info[n-1].IsExpanded)
+                if (!g_Info[n-1]->IsExpanded)
                 {
-                    while (n < Info.size() && Info[n].allocationStart() == allocationStart)
+                    while (n < Info.size() && Info[n]->allocationStart() == allocationStart)
                     {
                         Info.erase(Info.begin() + n);
                     }
@@ -183,7 +184,7 @@ static LRESULT ListviewWM_NOTIFY(HWND hWnd, WPARAM wParam, LPNMHDR lParam)
         NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
         if (plvdi->item.mask & LVIF_TEXT)
         {
-            const MemInfo& info = g_Info[plvdi->item.iItem];
+            const MemInfo& info = *g_Info[plvdi->item.iItem];
             int column = plvdi->item.iSubItem;
 
             if (column == 0)
@@ -213,7 +214,7 @@ static LRESULT ListviewWM_NOTIFY(HWND hWnd, WPARAM wParam, LPNMHDR lParam)
 
         if (nm->iSubItem == 0 && nm->iItem >= 0 && (size_t)nm->iItem < g_Info.size())
         {
-            MemInfo& info = g_Info[nm->iItem];
+            MemInfo& info = *g_Info[nm->iItem];
             if (info.CanExpand)
             {
                 info.IsExpanded = !info.IsExpanded;
@@ -226,7 +227,7 @@ static LRESULT ListviewWM_NOTIFY(HWND hWnd, WPARAM wParam, LPNMHDR lParam)
     {
         INT Num = ListView_GetNextItem(g_Listview, -1, LVNI_SELECTED);
         if (Num >= 0 && (size_t)Num < g_Info.size())
-            ShowMemory(hWnd, g_Info[Num], g_ProcessHandle, g_ProcessName);
+            ShowMemory(hWnd, *g_Info[Num], g_ProcessHandle, g_ProcessName);
     }
         return TRUE;
 
@@ -242,7 +243,7 @@ static LRESULT ListviewWM_NOTIFY(HWND hWnd, WPARAM wParam, LPNMHDR lParam)
             return CDRF_NOTIFYSUBITEMDRAW;
         case CDDS_SUBITEM | CDDS_ITEMPREPAINT:
         {
-            MemInfo& info = g_Info[lplvcd->nmcd.dwItemSpec];
+            const MemInfo& info = *g_Info[lplvcd->nmcd.dwItemSpec];
 
             if (lplvcd->iSubItem == 0)
             {

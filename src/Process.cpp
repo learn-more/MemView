@@ -11,9 +11,12 @@
 #include <map>
 
 static BOOL g_IsRunningOnWow = -1;
+
 static DWORD g_ProcessId;
 HANDLE g_ProcessHandle;
 std::wstring g_ProcessName;
+static bool g_ProcessIsx86;
+
 std::map<DWORD, HWND> g_Windows;
 
 void UpdateStatic(HWND Static)
@@ -21,7 +24,7 @@ void UpdateStatic(HWND Static)
     if (Static)
     {
         WCHAR buf[MAX_PATH + 20];
-        StringCchPrintfW(buf, _countof(buf), L"%s (%u)", g_ProcessName.c_str(), g_ProcessId);
+        StringCchPrintfW(buf, _countof(buf), L"%s (%u%s)", g_ProcessName.c_str(), g_ProcessId, g_ProcessIsx86 ? L", x86" : L"");
         Static_SetText(Static, buf);
     }
 }
@@ -42,6 +45,14 @@ bool OpenProcess(DWORD pid)
         WCHAR buf[512];
         GetProcessImageFileNameW(g_ProcessHandle, buf, _countof(buf));
         g_ProcessName = buf;
+
+        // When we are running as x86 on an x86 system, we do not care :)
+        g_ProcessIsx86 = false;
+        BOOL fIsWowProcess;
+        if (IsWow64Process(g_ProcessHandle, &fIsWowProcess))
+        {
+            g_ProcessIsx86 = !!fIsWowProcess;
+        }
     }
     return g_ProcessHandle != NULL;
 }

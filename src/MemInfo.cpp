@@ -130,7 +130,7 @@ void MemInfo::update(const MemInfo& info)
 }
 
 
-void MemInfo::read(HANDLE hProcess, std::vector<MemInfo>& items)
+void MemInfo::read(HANDLE hProcess, std::vector<std::unique_ptr<MemInfo>>& items)
 {
     items.clear();
 
@@ -151,11 +151,11 @@ void MemInfo::read(HANDLE hProcess, std::vector<MemInfo>& items)
         {
             if (mbi.State != MEM_FREE)
             {
-                items.push_back(MemInfo(mbi));
+                items.push_back(std::unique_ptr<MemInfo>(new MemInfo(mbi)));
                 DWORD num = GetMappedFileName(hProcess, mbi.BaseAddress, buf, _countof(buf));
                 if (num != 0)
                 {
-                    items.back().mMapped = buf;
+                    items.back()->mMapped = buf;
                 }
             }
             addr = (PBYTE)mbi.BaseAddress + mbi.RegionSize;

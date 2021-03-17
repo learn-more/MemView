@@ -8,6 +8,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 enum class Info
 {
@@ -39,7 +40,7 @@ public:
     void update(const MemInfo& info);
 
     static Info Index2Info(int index);
-    static void read(HANDLE hProcess, std::vector<MemInfo>& items);
+    static void read(HANDLE hProcess, std::vector<std::unique_ptr<MemInfo>>& items);
 
     PBYTE start() const { return static_cast<PBYTE>(mInfo.BaseAddress); }
     SIZE_T size() const { return mInfo.RegionSize; }
@@ -54,6 +55,7 @@ public:
 
 protected:
     MemInfo(const MEMORY_BASIC_INFORMATION& info);
+
     MEMORY_BASIC_INFORMATION mInfo;
     std::wstring mMapped;
     Info mChanged;
