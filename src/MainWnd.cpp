@@ -13,6 +13,7 @@
 static HWND g_Static;
 static HWND g_Listview;
 static std::vector<std::unique_ptr<MemInfo>> g_Info;
+static BOOL g_bErase = FALSE;
 
 #ifndef GWL_WNDPROC
 #define GWL_WNDPROC         (-4)
@@ -133,7 +134,7 @@ static void UpdateListView()
     {
         if (ListView_GetTopIndex(g_Listview) != Top)
         {
-            int jump = std::min<int>(End, g_Info.size()-1);
+            int jump = std::min<int>(End, (int)g_Info.size()-1);
             ListView_EnsureVisible(g_Listview, jump, FALSE); // jump forward
             ListView_EnsureVisible(g_Listview, Top, TRUE); // step back
         }
@@ -160,14 +161,33 @@ static void HandleSize(HWND hwnd)
     wp = DeferWindowPos(wp, g_Listview, 0, client.left, client.top, w, client.bottom - client.top, 0);
     EndDeferWindowPos(wp);
     ListView_SetColumnWidth(g_Listview, _countof(Columns) - 1, LVSCW_AUTOSIZE_USEHEADER);
+    // Ask to erase the entire listview background, so there are no artifacts around the edges
+    g_bErase = TRUE;
+    InvalidateRect(g_Listview, NULL, TRUE);
 }
 
 
 static WNDPROC g_OriginalProc;
+static HBRUSH g_WhiteBrush;
 static LRESULT APIENTRY ListViewSubclassProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     if(uMsg == WM_ERASEBKGND)
     {
+        if (g_bErase)
+        {
+            g_bErase = FALSE;
+
+            HDC hdc = (HDC) wParam;
+            RECT rc;
+            GetClientRect(hwnd, &rc);
+
+            if (!g_WhiteBrush)
+                g_WhiteBrush = (HBRUSH)GetStockObject(WHITE_BRUSH);
+
+            FillRect(hdc, &rc, g_WhiteBrush);
+
+            return 1L;
+        }
         return 0l;
     }
 
@@ -319,7 +339,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         LVCOLUMN lvc;
         for (size_t n = 0; n < _countof(Columns); ++n)
         {
-            lvc.iSubItem = n;
+            lvc.iSubItem = (int)n;
             lvc.cx = Sizes[n];
             lvc.fmt = LVCFMT_LEFT;
 
@@ -364,7 +384,16 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             MapWindowPoints(g_Listview, NULL, (LPPOINT)&rc, 2);
 
             if (UpdateProcessList(hwnd, rc.bottom - rc.top, rc.left, rc.top))
+            {
+                // Show new process title
                 UpdateStatic(g_Static);
+                // Redraw the entire listview background
+                g_bErase = TRUE;
+                InvalidateRect(g_Listview, NULL, TRUE);
+                // Immediately update list of modules,
+                // so that we do not draw over the erase with a previous process modules
+                UpdateListView();
+            }
         }
         break;
 

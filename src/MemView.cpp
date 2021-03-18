@@ -136,7 +136,7 @@ LRESULT HandleWM_PAINT(HWND hwnd, MemView* mv)
         size_t offset = (mv->vPos*PerLine) + (n*PerLine);
         size_t Left = std::min<size_t>(PerLine, mv->Info.size() - offset);
         ToBuffer(Buffer, _countof(Buffer), mv->Buffer.data() + (n*PerLine), Left, PerLine, mv->Info.start() + offset);
-        TextOutW(hdc, 2, mv->FontY * n, Buffer, (int)wcslen(Buffer));
+        TextOutW(hdc, 2, mv->FontY * (int)n, Buffer, (int)wcslen(Buffer));
     }
 
     EndPaint(hwnd, &ps);
@@ -197,10 +197,10 @@ static void HandleWM_VSCROLL(HWND hwnd, MemView* mv, WPARAM wParam, LPARAM lPara
         nVscrollInc = 1;
         break;
     case SB_PAGEUP:
-        nVscrollInc = -std::max<int>(1, mv->DisplayLines);
+        nVscrollInc = -std::max<int>(1, (int)mv->DisplayLines);
         break;
     case SB_PAGEDOWN:
-        nVscrollInc = std::max<int>(1, mv->DisplayLines);
+        nVscrollInc = std::max<int>(1, (int)mv->DisplayLines);
         break;
     case SB_THUMBPOSITION:
         nVscrollInc = si.nTrackPos - mv->ScrollPos;
@@ -280,7 +280,7 @@ LRESULT CALLBACK MemWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
         break;
 
-        // fix vertical stuff, then this works
+    // fix vertical stuff, then this works
     //case WM_ERASEBKGND:
     //    return 0;
 
