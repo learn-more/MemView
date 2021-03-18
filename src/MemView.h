@@ -31,6 +31,7 @@ HICON getCollapseIcon();
 // Set the window icon
 void setIcons(WNDCLASSEX& wc);
 
+void MemInfo_InitProcess(HANDLE hProcess);
 
 void UpdateStatic(HWND Static);
 bool UpdateProcessList(HWND Parent, UINT Height, int x, int y);

@@ -8,10 +8,39 @@
 #include "MemView.h"
 #include <Psapi.h>
 #include "MemInfo.h"
+#include <winternl.h>
+#include <unordered_map>
 
 
 static LPSYSTEM_INFO g_Info = nullptr;
 
+static std::unordered_map<PVOID, std::wstring> g_KnownRegions;
+static decltype(NtQueryInformationProcess)* g_NtQueryInformationProcess;
+
+void MemInfo_InitProcess(HANDLE hProcess)
+{
+    PROCESS_BASIC_INFORMATION pbi;
+    NTSTATUS Status;
+
+    g_KnownRegions.clear();
+#if _WIN64
+    g_KnownRegions[(PVOID)0xFFFFF78000000000] = L"SharedUserData [W]";
+#else
+    g_KnownRegions[(PVOID)0xFFDF0000] = L"SharedUserData [W]";
+#endif
+    g_KnownRegions[(PVOID)0x7FFE0000] = L"SharedUserData [R]";
+
+    if (g_NtQueryInformationProcess == nullptr)
+    {
+        g_NtQueryInformationProcess = (decltype(g_NtQueryInformationProcess))GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryInformationProcess");
+    }
+
+    Status = g_NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(pbi), NULL);
+    if (NT_SUCCESS(Status))
+    {
+        g_KnownRegions[pbi.PebBaseAddress] = L"PEB";
+    }
+}
 
 const wchar_t* Prot2Str(DWORD prot)
 {
@@ -156,6 +185,14 @@ void MemInfo::read(HANDLE hProcess, std::vector<std::unique_ptr<MemInfo>>& items
                 if (num != 0)
                 {
                     items.back()->mMapped = buf;
+                }
+                else
+                {
+                    auto it = g_KnownRegions.find(mbi.BaseAddress);
+                    if (it != g_KnownRegions.end())
+                    {
+                        items.back()->mMapped = it->second;
+                    }
                 }
             }
             addr = (PBYTE)mbi.BaseAddress + mbi.RegionSize;

@@ -53,6 +53,8 @@ bool OpenProcess(DWORD pid)
         {
             g_ProcessIsx86 = !!fIsWowProcess;
         }
+
+        MemInfo_InitProcess(g_ProcessHandle);
     }
     return g_ProcessHandle != NULL;
 }
