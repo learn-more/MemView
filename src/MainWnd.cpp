@@ -10,10 +10,10 @@
 #include <algorithm>
 #include "MemInfo.h"
 
-static HWND g_Static;
+static HWND g_CurrentProcessNameStatic;
+static HWND g_AboutStatic;
 static HWND g_Listview;
 static std::vector<std::unique_ptr<MemInfo>> g_Info;
-static BOOL g_bErase = FALSE;
 
 #ifndef GWL_WNDPROC
 #define GWL_WNDPROC         (-4)
@@ -154,44 +154,14 @@ static void HandleSize(HWND hwnd)
     RECT client;
     GetClientRect(hwnd, &client);
     LONG  w = client.right - client.left;
-    HDWP wp = BeginDeferWindowPos(2);
+    HDWP wp = BeginDeferWindowPos(3);
     LONG ItemHeight = 16;
-    wp = DeferWindowPos(wp, g_Static, 0, client.left, client.top, w, ItemHeight, 0);
+    wp = DeferWindowPos(wp, g_CurrentProcessNameStatic, 0, client.left, client.top, w - ItemHeight, ItemHeight, 0);
+    wp = DeferWindowPos(wp, g_AboutStatic, 0, client.right - ItemHeight, client.top, ItemHeight, ItemHeight, 0);
     client.top += ItemHeight;
     wp = DeferWindowPos(wp, g_Listview, 0, client.left, client.top, w, client.bottom - client.top, 0);
     EndDeferWindowPos(wp);
     ListView_SetColumnWidth(g_Listview, _countof(Columns) - 1, LVSCW_AUTOSIZE_USEHEADER);
-    // Ask to erase the entire listview background, so there are no artifacts around the edges
-    g_bErase = TRUE;
-    InvalidateRect(g_Listview, NULL, TRUE);
-}
-
-
-static WNDPROC g_OriginalProc;
-static HBRUSH g_WhiteBrush;
-static LRESULT APIENTRY ListViewSubclassProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    if(uMsg == WM_ERASEBKGND)
-    {
-        if (g_bErase)
-        {
-            g_bErase = FALSE;
-
-            HDC hdc = (HDC) wParam;
-            RECT rc;
-            GetClientRect(hwnd, &rc);
-
-            if (!g_WhiteBrush)
-                g_WhiteBrush = (HBRUSH)GetStockObject(WHITE_BRUSH);
-
-            FillRect(hdc, &rc, g_WhiteBrush);
-
-            return 1L;
-        }
-        return 0l;
-    }
-
-    return CallWindowProc(g_OriginalProc, hwnd, uMsg, wParam, lParam);
 }
 
 
@@ -272,7 +242,7 @@ static LRESULT ListviewWM_NOTIFY(HWND hWnd, WPARAM wParam, LPNMHDR lParam)
                     RECT rc;
                     ListView_GetItemRect(g_Listview, lplvcd->nmcd.dwItemSpec, &rc, LVIR_LABEL);
                     HBRUSH hbrush = (HBRUSH)GetCurrentObject(lplvcd->nmcd.hdc, OBJ_BRUSH);
-                    DrawIconEx(lplvcd->nmcd.hdc, rc.left, rc.top, info.IsExpanded ? getCollapseIcon() : getExpandIcon(), 0, 0, 0, hbrush, DI_NORMAL);
+                    DrawIconEx(lplvcd->nmcd.hdc, rc.left-3, rc.top, info.IsExpanded ? getCollapseIcon() : getExpandIcon(), 0, 0, 0, hbrush, DI_NORMAL);
                     return CDRF_SKIPDEFAULT;
                 }
                 else
@@ -317,24 +287,26 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         RECT client;
         GetClientRect(hwnd, &client);
-        LONG  w = client.right - client.left;
+        LONG w = client.right - client.left;
         LONG h = client.bottom - client.top;
 
-        g_Listview = CreateWindow(WC_LISTVIEW, L"", WS_CHILD | LVS_REPORT | WS_VISIBLE | LVS_OWNERDATA | WS_TABSTOP,
+        g_Listview = CreateWindowW(WC_LISTVIEW, L"", WS_CHILD | LVS_REPORT | WS_VISIBLE | LVS_OWNERDATA | WS_TABSTOP,
             client.left, client.top + 16, w, h, hwnd, NULL, g_hInst, NULL);
 
-        g_Static = CreateWindow(WC_STATIC, TEXT(""), WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | SS_NOTIFY,
-            client.left, client.top, w, 16, hwnd, NULL, g_hInst, 0);
+        g_CurrentProcessNameStatic = CreateWindowW(WC_STATIC, L"", WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | SS_NOTIFY | SS_SUNKEN,
+            client.left, client.top, w - 16, 16, hwnd, NULL, g_hInst, 0);
+
+        g_AboutStatic = CreateWindowW(WC_STATIC, L"?", WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | SS_NOTIFY | SS_SUNKEN | SS_CENTER,
+            client.right - 16, client.top, 16, 16, hwnd, NULL, g_hInst, 0);
 
 
-        g_OriginalProc = (WNDPROC)SetWindowLongPtr(g_Listview, GWL_WNDPROC, (LONG_PTR)ListViewSubclassProc);
+        ListView_SetExtendedListViewStyle(g_Listview, ListView_GetExtendedListViewStyle(g_Listview) | LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
 
-        ListView_SetExtendedListViewStyle(g_Listview, ListView_GetExtendedListViewStyle(g_Listview) | LVS_EX_FULLROWSELECT);
-
-        SetWindowFont(g_Static, getFont(), FALSE);
+        SetWindowFont(g_CurrentProcessNameStatic, getFont(), FALSE);
+        SetWindowFont(g_AboutStatic, getFont(), FALSE);
         SetWindowFont(g_Listview, getFont(), FALSE);
 
-        UpdateStatic(g_Static);
+        UpdateStatic(g_CurrentProcessNameStatic);
 
         LVCOLUMN lvc;
         for (size_t n = 0; n < _countof(Columns); ++n)
@@ -357,6 +329,14 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             ListView_InsertColumn(g_Listview, n, &lvc);
         }
         ListView_SetColumnWidth(g_Listview, _countof(Columns) - 1, LVSCW_AUTOSIZE_USEHEADER);
+
+        HWND header = ListView_GetHeader(g_Listview);
+        HDITEMW hdi = {0};
+        hdi.mask = HDI_FORMAT;
+        Header_GetItem(header, 0, &hdi);
+        hdi.fmt |= HDF_FIXEDWIDTH;
+        Header_SetItem(header, 0, &hdi);
+
         UpdateListView();
         SetFocus(g_Listview);
         SetTimer(hwnd, 0x1337, 1000, NULL);
@@ -377,7 +357,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_COMMAND:
-        if ((HWND)lParam == g_Static && HIWORD(wParam) == STN_CLICKED)
+        if ((HWND)lParam == g_CurrentProcessNameStatic && HIWORD(wParam) == STN_CLICKED)
         {
             RECT rc;
             GetClientRect(g_Listview, &rc);
@@ -386,19 +366,22 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if (UpdateProcessList(hwnd, rc.bottom - rc.top, rc.left, rc.top))
             {
                 // Show new process title
-                UpdateStatic(g_Static);
-                // Redraw the entire listview background
-                g_bErase = TRUE;
-                InvalidateRect(g_Listview, NULL, TRUE);
+                UpdateStatic(g_CurrentProcessNameStatic);
+
                 // Immediately update list of modules,
-                // so that we do not draw over the erase with a previous process modules
                 UpdateListView();
             }
+        }
+        else if ((HWND)lParam == g_AboutStatic && HIWORD(wParam) == STN_CLICKED)
+        {
+            PostMessageW(hwnd, WM_KEYUP, VK_F1, 0);
+            //if (Msg.message == WM_KEYUP && Msg.wParam == VK_F1)
         }
         break;
 
     case WM_SETCURSOR:
-        if ((HWND)wParam == g_Static)
+        if ((HWND)wParam == g_CurrentProcessNameStatic ||
+            (HWND)wParam == g_AboutStatic)
         {
             ::SetCursor(LoadCursorW(NULL, IDC_HAND));
             return TRUE;
@@ -412,9 +395,8 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_DESTROY:
         KillTimer(hwnd, 0x1337);
-        SetWindowLongPtr(g_Listview, GWL_WNDPROC, (LONG_PTR)g_OriginalProc);
         DestroyWindow(g_Listview);
-        DestroyWindow(g_Static);
+        DestroyWindow(g_CurrentProcessNameStatic);
         PostQuitMessage(0);
         return 0;
 
@@ -426,7 +408,6 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             return 0l;
         }
         break;
-    //case WM_ACTIVATEAPP:
 
     default:
         break;

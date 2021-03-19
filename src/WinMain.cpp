@@ -8,6 +8,13 @@
 #include "MemView.h"
 #include <Commctrl.h>
 #include "../res/resource.h"
+#include "version.h"
+
+// Common controls 6.0 are required for the SysLink control
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+
 
 #pragma comment (lib, "Comctl32.lib")
 #pragma comment(lib, "Psapi.lib")
@@ -89,13 +96,77 @@ void setIcons(WNDCLASSEX& wc)
     wc.hIconSm = g_MainIconSm;
 }
 
+void OnInitAboutDlg(HWND hDlg)
+{
+    HWND hWndParent;
+    RECT rc;
+    int w, h;
+
+    hWndParent = GetParent(hDlg);
+    GetWindowRect(hDlg, &rc);
+    w = rc.right - rc.left;
+    h = rc.bottom - rc.top;
+    GetWindowRect(hWndParent, &rc);
+    SetWindowPos(hDlg, HWND_TOP,
+                 rc.left + ((rc.right - rc.left) - w) / 2,
+                 rc.top + ((rc.bottom - rc.top) - h) / 2,
+                 0, 0, SWP_NOSIZE);
+
+    SetDlgItemTextA(hDlg, IDC_VERSION, "<a href=\"https://learn-more.github.io/MemView/\">MemView</a> " GIT_VERSION_STR);
+}
+
+INT_PTR CALLBACK AboutProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        OnInitAboutDlg(hDlg);
+        return TRUE;
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDCANCEL:
+        case IDOK:
+            EndDialog(hDlg, 0);
+            break;
+        }
+        break;
+    case WM_NOTIFY:
+        switch (((LPNMHDR)lParam)->code)
+        {
+        case NM_CLICK:
+        case NM_RETURN:
+        {
+            PNMLINK pNMLink = (PNMLINK)lParam;
+            if (pNMLink->hdr.idFrom == IDC_VERSION || pNMLink->hdr.idFrom == IDC_CREDITS)
+            {
+                SHELLEXECUTEINFOW shExInfo = { sizeof(shExInfo) };
+                shExInfo.lpVerb = L"open";
+                shExInfo.hwnd = hDlg;
+                shExInfo.fMask = SEE_MASK_UNICODE | SEE_MASK_NOZONECHECKS | SEE_MASK_NOASYNC;
+                shExInfo.lpFile = pNMLink->item.szUrl;
+                shExInfo.nShow = SW_SHOW;
+
+                CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+                ShellExecuteExW(&shExInfo);
+                CoUninitialize();
+            }
+        }
+        break;
+        }
+    default:
+        break;
+    }
+    return FALSE;
+}
 
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     INITCOMMONCONTROLSEX icex;
-    icex.dwICC = ICC_LISTVIEW_CLASSES;
+    icex.dwICC = ICC_LISTVIEW_CLASSES | ICC_LINK_CLASS;
     InitCommonControlsEx(&icex);
     g_hInst = hInstance;
 
@@ -117,14 +188,26 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
     ShowWindow(hwndMain, nCmdShow);
     UpdateWindow(hwndMain);
 
-    MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0) > 0)
+    BOOL bRet;
+    MSG Msg;
+    while((bRet = GetMessageW(&Msg, NULL, 0, 0)) != 0)
     {
-        if (!IsDialogMessage(msg.hwnd, &msg))
+        if (bRet == -1)
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            DestroyWindow(hwndMain);
+            ExitProcess(GetLastError());
+        }
+        if (!IsDialogMessageW(hwndMain, &Msg))
+        {
+            TranslateMessage(&Msg);
+            DispatchMessageW(&Msg);
+        }
+
+        /* Just spy for messages here. This way we also see it when a child control has focus */
+        if (Msg.message == WM_KEYUP && Msg.wParam == VK_F1)
+        {
+            DialogBoxParamW(hInstance, MAKEINTRESOURCEW(IDD_ABOUTBOX), hwndMain, AboutProc, 0L);
         }
     }
-    return (int)msg.wParam;
+    return (int)Msg.wParam;
 }
