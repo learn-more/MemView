@@ -117,6 +117,13 @@ static HMENU CreateProcessMenu(UINT Height)
     EnumWindows(enumProc2, NULL);
 
     Menu = CreatePopupMenu();
+
+    // Do not reserve place for checkmarks
+    MENUINFO Info = { sizeof(Info), MIM_STYLE};
+    GetMenuInfo(Menu, &Info);
+    Info.dwStyle |= MNS_NOCHECK;
+    SetMenuInfo(Menu, &Info);
+
     WCHAR buffer[MAX_PATH + 20];
     UINT ItemHeight, Current = 0;
     ItemHeight = GetSystemMetrics(SM_CYMENUSIZE);
