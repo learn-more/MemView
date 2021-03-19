@@ -12,7 +12,9 @@ See https://learn-more.github.io/MemView/ for an overview of the features.
 
 
 Main window:
+
 ![Layout](docs/MemView.png)
 
 Hex-view:
+
 ![Hexview](docs/MemView-hex.png)
