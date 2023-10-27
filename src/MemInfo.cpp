@@ -14,6 +14,7 @@
 
 static LPSYSTEM_INFO g_Info = nullptr;
 
+// FIXME: See PhpUpdateMemoryRegionTypes
 static std::unordered_map<PVOID, std::wstring> g_KnownRegions;
 static decltype(NtQueryInformationProcess)* g_NtQueryInformationProcess;
 
