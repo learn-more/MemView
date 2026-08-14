@@ -1,0 +1,112 @@
+name: release
+
+# Tag push only. Pushing v0.9.0 builds it and leaves a *draft* release with the zips attached; nothing is
+# published until the draft is released by hand from the GitHub UI.
+#
+# Tags are v-prefixed from here on. Everything released before this migration (0.8.1 and earlier) was tagged
+# bare, so the filter below simply does not match those - they stay as they are. GenVersion.bat strips the
+# prefix again on the way into the version resource, which needs plain numbers.
+on:
+  push:
+    tags: ['v*']
+
+# The release is created in this repository, so the default GITHUB_TOKEN needs to be able to write it. No PAT.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Pinned. MemView builds with v141_xp, which comes from a Visual Studio 2022 component that is installed
+    # below at a hard-coded 2022 path - windows-latest moving to a newer image breaks that step. The old
+    # AppVeyor "Visual Studio 2015" image had v140_xp; no current runner image does, and windows-2019 is
+    # retired, which is why the project was retargeted to v141_xp for this migration.
+    runs-on: windows-2022
+    steps:
+      # fetch-depth: 0 is not optional here. GenVersion.bat runs as a pre-build event and shells out to
+      # `git describe --tags`; on a shallow clone with no tags it yields an empty version and the resource
+      # compile then fails on a malformed FILEVERSION.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Unconditional, unlike JobDebug where only x86 needs it: MemView ships an XP-capable x64 binary too
+      # (subsystem 5.02, matching the _USING_V110_SDK71_ already in the resource script), so both platforms
+      # build with v141_xp. The WinXP component carries the v141_xp MSBuild targets for Win32 *and* x64 plus
+      # the 7.1A SDK; none of that is on the image by default.
+      - name: Add v141_xp tools
+        working-directory: "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\"
+        shell: cmd
+        run: vs_installer.exe modify --quiet --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" --add Microsoft.VisualStudio.Component.WinXP --norestart --nocache
+
+      - uses: microsoft/setup-msbuild@v3
+
+      # One job with two build steps rather than a `platform:` matrix: a matrix would mean a separate SimplySign
+      # login per job, and each login spends a one-time code. Both configurations already write into bin\ under
+      # distinct names.
+      - name: Build x86
+        run: msbuild MemView.sln /p:Configuration=Release /p:Platform=x86 /m /v:m /nologo
+
+      - name: Build x64
+        run: msbuild MemView.sln /p:Configuration=Release /p:Platform=x64 /m /v:m /nologo
+
+      # Signing is opt-in: without the Certum settings a release still builds, unsigned and labelled as such.
+      # .github/SIGNING.md lists what to store and where.
+      #
+      # Runs after both builds and before the zips, because signing rewrites the executables - a zip made first
+      # would carry the unsigned ones. Only the executables; a PDB carries no signature.
+      #
+      # No `description:` here, unlike JobDebug: MemView has a version resource, so the action picks up its
+      # FileDescription and the string stays in a single place (res/MemView.rc2).
+      - name: Sign release binaries
+        uses: learn-more/certum-signing@v1
+        with:
+          path: |
+            bin/MemView-x86.exe
+            bin/MemView-x64.exe
+          notes-path: release-notes.md
+          otp-uri: ${{ secrets.CERTUM_OTP_URI }}
+          username: ${{ secrets.CERTUM_USERNAME }}
+          certificate-sha1: ${{ vars.CERTUM_CERTIFICATE_SHA1 }}
+          timestamp-server: ${{ vars.CERTUM_TIMESTAMP_SERVER }}
+          intermediate-url: ${{ vars.CERTUM_INTERMEDIATE_URL }}
+
+      # One zip per platform, each carrying its executable and the matching PDB so a crash in a released build
+      # can still be symbolised. Named files rather than the directory, so the archive stores bare filenames and
+      # the .iobj/.ipdb link-time artefacts sitting next to them in bin\ stay out.
+      - name: Package release assets
+        run: |
+          Compress-Archive -Path bin\MemView-x86.exe, bin\MemView-x86.pdb -DestinationPath MemView-x86.zip
+          Compress-Archive -Path bin\MemView-x64.exe, bin\MemView-x64.pdb -DestinationPath MemView-x64.zip
+          Get-ChildItem *.zip
+
+      # Appends a changelog under the signing banner the action just wrote, so the draft is a starting point to
+      # edit rather than an empty box. `git tag --merged` rather than `git describe`, because it cannot fail when
+      # there is no earlier tag. It is also why the switch of tag scheme costs nothing: the first v-tag finds
+      # 0.8.1 as its predecessor and diffs against it.
+      - name: Build release notes
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $prev = @(git tag --merged "$tag^" --sort=-creatordate)[0]
+          '', '## Changes' | Add-Content release-notes.md
+          if ($prev) {
+            '', "[$prev...$tag](https://github.com/${{ github.repository }}/compare/$prev...$tag)", '' |
+              Add-Content release-notes.md
+            git log --no-merges --pretty=format:'- %s' "$prev..$tag" | Add-Content release-notes.md
+          } else {
+            git log --no-merges --pretty=format:'- %s' $tag | Add-Content release-notes.md
+          }
+          Get-Content release-notes.md
+
+      # --draft so this never publishes on its own: until someone releases it by hand it is visible only to
+      # collaborators, and its assets need auth to download. --verify-tag rather than letting gh create a tag of
+      # its own, so a mistyped ref fails here instead of tagging something. No --generate-notes: --notes-file
+      # already carries the signing banner and the changelog, which the draft is then edited over.
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $ghArgs = @($tag, '--draft', '--verify-tag', '--title', $tag, '--notes-file', 'release-notes.md')
+          # v0.9.0-rc1 and friends: anything with a suffix after the version is not a final release.
+          if ($tag -match '^v\d+\.\d+\.\d+-') { $ghArgs += '--prerelease' }
+          gh release create @ghArgs MemView-x86.zip MemView-x64.zip

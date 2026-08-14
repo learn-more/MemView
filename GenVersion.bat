@@ -5,6 +5,8 @@ setlocal
 set HEADER_NAME="%~dp0generated_git_version.h"
 
 for /f %%i in ('git describe --tags --dirty --long') do set GIT_VERSION=%%i
+rem Tags are v-prefixed; FILEVERSION needs plain numbers, so "v0.9.0-.." would not compile.
+if "%GIT_VERSION:~0,1%" == "v" set GIT_VERSION=%GIT_VERSION:~1%
 set FULL_STRING=#define GIT_VERSION_DESC  "%GIT_VERSION%"
 if exist %HEADER_NAME% (
     set /p CURRENT_STRING=<%HEADER_NAME%

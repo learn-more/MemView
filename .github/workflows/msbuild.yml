@@ -1,0 +1,54 @@
+name: MSBuild
+
+# What AppVeyor did on every commit: build both platforms and keep the binaries as artifacts. Releases are
+# release.yml's job, and this workflow never signs - pull request builds from forks cannot see secrets anyway,
+# and every signature costs a login to a certificate meant for artifacts people actually download.
+#
+# paths-ignore carries over appveyor.yml's skip_commits: the GitHub Pages content under docs/ cannot affect a
+# build.
+on:
+  push:
+    branches: ["master"]
+    paths-ignore: ["docs/**", "**/*.html"]
+  pull_request:
+    branches: ["master"]
+    paths-ignore: ["docs/**", "**/*.html"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # Pinned for the same reason as release.yml: the v141_xp step below installs into a hard-coded Visual
+    # Studio 2022 path, so windows-latest moving to a newer image breaks it.
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86, x64]
+    steps:
+      # fetch-depth: 0 for the tags - GenVersion.bat runs `git describe --tags` as a pre-build event and the
+      # resource compile fails without a version. See release.yml.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Needed for both arches here: MemView targets XP on x86 and x64 alike.
+      - name: Add v141_xp tools
+        working-directory: "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\"
+        shell: cmd
+        run: vs_installer.exe modify --quiet --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" --add Microsoft.VisualStudio.Component.WinXP --norestart --nocache
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+
+      # A matrix is fine in this workflow, unlike in release.yml: nothing here logs in to sign.
+      - name: Build
+        run: msbuild MemView.sln /p:Configuration=Release /p:Platform=${{ matrix.arch }} /m /v:m /nologo
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: MemView-${{ matrix.arch }}
+          path: |
+            bin/MemView-${{ matrix.arch }}.exe
+            bin/MemView-${{ matrix.arch }}.pdb
